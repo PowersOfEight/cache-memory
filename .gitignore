@@ -1,6 +1,7 @@
 # File extensions
 *.o
 *.tar.gz
+README.txt
 
 # Directories
 bin/*
