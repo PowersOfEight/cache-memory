@@ -1,2 +1,6 @@
+# File extensions
 *.o
+*.tar.gz
+
+# Directories
 bin/*

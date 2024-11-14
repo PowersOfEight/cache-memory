@@ -7,4 +7,4 @@ README.txt:
 README: README.txt
 
 tarball: README
-	tar -cvf $(NAME).tar.gz README.txt
+	tar -czvf $(NAME).tar.gz README.txt
