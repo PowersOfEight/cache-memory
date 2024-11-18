@@ -4,7 +4,6 @@ CC=gcc
 bin:
 	mkdir bin
 
-
 README.txt:
 	cat README.md > README.txt
 
