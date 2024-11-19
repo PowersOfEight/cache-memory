@@ -43,3 +43,6 @@ This takes us $n \cdot k$ steps, and so we have that the total time complexity i
 $$
     l_1 \cdot  n^k \cdot l_2 \cdot k \cdot n \in O(kn^{k+1})
 $$$ \square$
+
+
+[Click here for some explanation of the strategy](https://lemire.me/blog/2023/12/12/measuring-the-size-of-the-cache-line-empirically/)

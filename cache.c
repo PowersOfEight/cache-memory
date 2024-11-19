@@ -3,110 +3,114 @@
 #include <pthread.h>
 #include <time.h>
 
-# define SPINNER_DELAY 100000000
-# define COLLECTION_DELAY 100000
-# define COLLECTION_N_ITER 50000000
+
+# define SPINNER_DELAY 10000000L
+# define COLLECTION_DELAY 100000L
+# define COLLECTION_N_ITER 50000000L
+
+# define DEFAULT_FILE_NAME "data/cache-data.csv"
+
+# define BILLION 1000000000L
+# define MAX_BUFFER = 32 * 1024 * 1024
 
 volatile int spin = 1;
-
-typedef struct {
-    int value;
-    pthread_mutex_t lock;
-} atomic_t;
-
-int read_atom(atomic_t* atom) {
-    int result;
-    pthread_mutex_lock(&atom->lock);
-    result = atom->value;
-    pthread_mutex_unlock(&atom->lock);
-    return result;
-}
-
-int set_atom(atomic_t* atom, int value) {
-   int result;
-   pthread_mutex_lock(&atom->lock);
-   result = atom->value;
-   atom->value = value;
-   pthread_mutex_unlock(&atom->lock);
-   return result; 
-}
-
-// return 1
-int init_atomic_t(atomic_t *atom, int value) {
-    int result = 0;
-    result += pthread_mutex_init(&atom->lock, NULL);
-    atom->value = value;
-    return result;
-}
-
-// void measure_access_time(size_t buffer_size, size_t stride);
-
-
-
-void *spinner() {
-    const char spinner_chars[] = {'|', '/', '-', '\\'};
+volatile char dummy_char = (char)0;
+void* spinner() {
+    const char spinner_chars[] = { '|', '/', '-', '\\' };
     const int num_chars = 4;
     int ndx = 0;
-    // atomic_t* flag = (atomic_t*) args;
-    struct timespec interval;
-    
-    interval.tv_sec = 0;
-    interval.tv_nsec = SPINNER_DELAY;
-    while (spin == 1) {
-        printf("\r%c\t", spinner_chars[ndx]);
-        fflush(stdout);
-        ndx = (ndx + 1) % num_chars;
-        nanosleep(&interval, NULL);// Delays animation
-        // usleep(SPINNER_DELAY);
-    }
+    int delay_count = 0;
 
-    printf("\rAnimation complete!\n");
+    while (spin == 1) {
+        if (++delay_count >= SPINNER_DELAY) {
+            delay_count = dummy_char;
+            printf("\r%c", spinner_chars[ndx]);
+            fflush(stdout);
+            ndx = (ndx + 1) % num_chars;
+            delay_count = 0;
+        }
+
+    }
     return NULL;
+    printf("\r\n");
 }
 
-void collect_data() {
-    FILE* out;
-    out = fopen("./bin/debug", "w+");
-    // struct timespec interval;
-    size_t i;
 
-    // interval.tv_nsec = COLLECTION_DELAY;
-    // this just spins for now
-    for ( i = 0; i < COLLECTION_N_ITER; ++i) {
-        fprintf(out, "\r%ld", i);
-        // fflush(out);
-        // nanosleep(&interval, NULL);
+
+// Every data point has some value associated with it
+// Buffer Size, Stride (how far into the buffer we're accessing), time_diff
+// Lets make a VERY big file and read these in as structs
+void collect_data(size_t buffer_size, size_t stride, FILE* out) {
+    char* buffer = malloc(buffer_size);
+
+    /**
+     * May fail to allocate due to th volume of memory we're
+     * allocating here.
+     */
+    if (!buffer) {
+        perror("Memory Allocation Failed");
+        exit(EXIT_FAILURE);
     }
 
-    spin=0;
-    fclose(out);
+    struct timespec start, end;
+    size_t iterations = buffer_size / stride;// Total iterations
+    /**
+     * The volatile keyword allows us to avoid compiler optimizations
+     * for this value.
+     */
+     // volatile char dummy_char;
+
+    for (size_t i = 0; i < iterations; i++) {
+        buffer[i * stride] = (char)i;
+    }
+
+    for (size_t i = 0; i < iterations; i++) {
+        clock_gettime(CLOCK_MONOTONIC, &start);
+        dummy_char = buffer[i * stride];
+        clock_gettime(CLOCK_MONOTONIC, &end);
+        unsigned long diff = (end.tv_sec - start.tv_sec) * BILLION + (end.tv_nsec - start.tv_nsec);
+        fprintf(out, "%lu,%lu,%lu\r\n", buffer_size, stride, diff);
+    }
+
+    free(buffer);
 }
 
 int main(int argc, char** argv) {
-
+    const char* filename;
     pthread_t spinner_thread;
-    // atomic_t spinner_flag;// Tells the spinner thread to keep spinning;
-    // if (init_atomic_t(&spinner_flag, 1) != 0) {
-    //     perror("Failed to initialize spinner flag!");
-    //     return EXIT_FAILURE;
-    // } 
+    FILE* outfile;
+    const size_t stride = 64;
+    size_t max_buffer = 32 * 1024 * 1024; // 2^25
 
-
-    if (pthread_create(&spinner_thread, NULL, spinner, NULL) != 0) {
-        perror("Thread creation failure!");
-        return EXIT_FAILURE;
-    } else {
-        
+    if (argc < 1) {
+        filename = DEFAULT_FILE_NAME;
     }
 
-    collect_data();// Simulates data collection for now
+    outfile = fopen(filename, "w");
 
-
-    if (pthread_join(spinner_thread, NULL) != 0) {
-        perror("Failed to join spinner thread");
+    if (!outfile) {
+        perror("Could not open file");
         return EXIT_FAILURE;
     }
 
-    printf("Test Successful\n");
+
+    for (size_t buffer_size = 1024; buffer_size <= max_buffer; buffer_size *= 2) {
+        for (size_t stride_size = 1; stride_size <= stride; stride_size *= 2) {
+            spin = 1;
+            if (pthread_create(&spinner_thread, NULL, spinner, NULL) != 0) {
+                perror("Thread creation failure!");
+                return EXIT_FAILURE;
+            }
+            collect_data(buffer_size, stride, outfile);
+            spin = 0;
+            if (pthread_join(spinner_thread, NULL) != 0) {
+                perror("Failed to join spinner thread");
+                return EXIT_FAILURE;
+            }
+        }
+    }
+
+    fclose(outfile);
+    printf("Run complete\n");
     return 0;
 }
