@@ -4,6 +4,15 @@ CC=gcc
 bin:
 	mkdir bin
 
+cache.o: bin cache.c
+	$(CC) -c -o bin/cache.o cache.c
+
+cache: bin cache.o
+	$(CC) -o bin/cache bin/cache.o
+
+run: cache
+	./bin/cache
+
 README.txt:
 	cat README.md > README.txt
 
