@@ -1,14 +1,16 @@
 NAME=johnson
 CC=gcc
+FLAGS= -Wall
+
 
 bin:
 	mkdir bin
 
 cache.o: bin cache.c
-	$(CC) -c -o bin/cache.o cache.c
+	$(CC) -c $(FLAGS) -o bin/cache.o cache.c
 
 cache: bin cache.o
-	$(CC) -o bin/cache bin/cache.o
+	$(CC) $(FLAGS) -o bin/cache bin/cache.o
 
 run: cache
 	./bin/cache
