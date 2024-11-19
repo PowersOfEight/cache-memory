@@ -15,9 +15,9 @@ The language used is C, so we'll create all `.h` and `.c` files, along with `REA
 
 ### Thoughts on answering 3 & 4
 
-If we allocate some memory, we can populate a list of data-points with the time it takes to do some basic read to it.  Speaking abstractly, we're going to create $n \in \mathbb{N}$ separate datapoints that will be _access times_.  Let $X$ be the set of all data-points generated this way.  These data points will literally be the time it takes (in nanoseconds) to access this chunk of memory.  We should have mostly cache hits and a few cache misses.  If we put these on a number line, we could try every subset of $k$ centroids and find which one produces the _minimum variance_.  This is essentially the $k$-means algorithm. 
+If we allocate some memory, we can populate a list of data-points with the time it takes to do some basic read to it.  Speaking abstractly, we're going to create $n \in \mathbb{N}$ separate data points that will be _access times_.  Let $X$ be the set of all data-points generated this way.  These data points will literally be the time it takes (in nanoseconds) to access this chunk of memory.  We should have mostly cache hits and a few cache misses.  If we put these on a number line, we could try every subset of $k$ centroids and find which one produces the _minimum variance_.  This is essentially the $k$-means algorithm. 
 
-What we're trying to do is _cluster_ the data points into two groups on a number line, so this is straightforward and we can check every data point for $k$ clusters using a brute force method in $\Theta(kn^{k+1})$ time complexity.
+What we're trying to do is _cluster_ the data points into two groups on a number line, so this is straightforward, and we can check every data point for $k$ clusters using a brute force method in $\Theta(kn^{k+1})$ time complexity.
 
 $\textbf{\text{Proof: }}$ Let $n$ be the number of data points, and $k$ the number of clusters we're seeking.  Let $m$ be the number of unique cardinality $k$ subsets of centroids we need to produce.  We have that
 $$
