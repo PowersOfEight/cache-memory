@@ -1,21 +1,32 @@
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 #include <time.h>
+#include "cluster.h"
 
 
-# define SPINNER_DELAY 10000000L
+# define SPINNER_DELAY 200000000L
 # define COLLECTION_DELAY 100000L
 # define COLLECTION_N_ITER 50000000L
 
 # define DEFAULT_FILE_NAME "data/cache-data.csv"
 
 # define BILLION 1000000000L
-# define MAX_BUFFER = 32 * 1024 * 1024
+# define MAX_BUFFER 32 * 1024 * 1024
+# define N_CENTERS 2097152
+# define MIN_STRIDE 64
+// Let's record one center for each of the runs
 
 volatile int spin = 1;
+/**
+ * Forces this out of optimization on reads
+ */
 volatile char dummy_char = (char)0;
-void* spinner() {
+size_t it_counter = 0;
+
+
+void* spinner(void* args) {
     const char spinner_chars[] = { '|', '/', '-', '\\' };
     const int num_chars = 4;
     int ndx = 0;
@@ -31,8 +42,22 @@ void* spinner() {
         }
 
     }
+    printf("\r \n");
     return NULL;
-    printf("\r\n");
+}
+
+int compare(const void* a, const void* b) {
+    return (*(size_t*)a - *(size_t*)b);
+}
+
+size_t median(size_t arr[], size_t n) {
+    qsort(arr, n, sizeof(size_t), compare);
+
+    if ((n & 1) == 0) { // even
+        return (arr[n / 2 - 1] + arr[n / 2 ]) / 2;
+    } else {
+        return arr[n/2];
+    }
 }
 
 
@@ -40,20 +65,22 @@ void* spinner() {
 // Every data point has some value associated with it
 // Buffer Size, Stride (how far into the buffer we're accessing), time_diff
 // Lets make a VERY big file and read these in as structs
-void collect_data(size_t buffer_size, size_t stride, FILE* out) {
+size_t collect_median_access_time(size_t buffer_size, size_t stride) {
+    size_t iterations = buffer_size / stride;// Total iterations
+    size_t* data = malloc(sizeof(size_t) * iterations);
     char* buffer = malloc(buffer_size);
+    size_t result = -1;
 
     /**
      * May fail to allocate due to th volume of memory we're
      * allocating here.
      */
-    if (!buffer) {
+    if (!buffer || !data) {
         perror("Memory Allocation Failed");
         exit(EXIT_FAILURE);
     }
 
     struct timespec start, end;
-    size_t iterations = buffer_size / stride;// Total iterations
     /**
      * The volatile keyword allows us to avoid compiler optimizations
      * for this value.
@@ -68,49 +95,38 @@ void collect_data(size_t buffer_size, size_t stride, FILE* out) {
         clock_gettime(CLOCK_MONOTONIC, &start);
         dummy_char = buffer[i * stride];
         clock_gettime(CLOCK_MONOTONIC, &end);
-        unsigned long diff = (end.tv_sec - start.tv_sec) * BILLION + (end.tv_nsec - start.tv_nsec);
-        fprintf(out, "%lu,%lu,%lu\r\n", buffer_size, stride, diff);
+        data[i] = (end.tv_sec - start.tv_sec) * BILLION + (end.tv_nsec - start.tv_nsec);
+        it_counter++;
     }
 
+    result = median(data, iterations);
+
     free(buffer);
+    free(data);
+
+    return result;
 }
 
 int main(int argc, char** argv) {
-    const char* filename;
     pthread_t spinner_thread;
-    FILE* outfile;
-    const size_t stride = 64;
-    size_t max_buffer = 32 * 1024 * 1024; // 2^25
 
-    if (argc < 1) {
-        filename = DEFAULT_FILE_NAME;
+    spin = 1;
+    if (pthread_create(&spinner_thread, NULL, spinner, NULL) != 0) {
+        perror("Thread creation failure!");
+        return EXIT_FAILURE;
     }
-
-    outfile = fopen(filename, "w");
-
-    if (!outfile) {
-        perror("Could not open file");
+    for (size_t buffer_size = 1024; buffer_size <= MAX_BUFFER; buffer_size *= 2) {
+        for (size_t stride_size = 1; stride_size <= MIN_STRIDE; stride_size *= 2) {
+            // collect_median_access_time(buffer_size, stride_size, outfile);
+            collect_median_access_time(buffer_size, stride_size);
+        }
+    }
+    spin = 0;
+    if (pthread_join(spinner_thread, NULL) != 0) {
+        perror("Failed to join spinner thread");
         return EXIT_FAILURE;
     }
 
-
-    for (size_t buffer_size = 1024; buffer_size <= max_buffer; buffer_size *= 2) {
-        for (size_t stride_size = 1; stride_size <= stride; stride_size *= 2) {
-            spin = 1;
-            if (pthread_create(&spinner_thread, NULL, spinner, NULL) != 0) {
-                perror("Thread creation failure!");
-                return EXIT_FAILURE;
-            }
-            collect_data(buffer_size, stride, outfile);
-            spin = 0;
-            if (pthread_join(spinner_thread, NULL) != 0) {
-                perror("Failed to join spinner thread");
-                return EXIT_FAILURE;
-            }
-        }
-    }
-
-    fclose(outfile);
-    printf("Run complete\n");
+    printf("Run complete\nTotal Iterations: %lu\n", it_counter);
     return 0;
 }
