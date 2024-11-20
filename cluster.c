@@ -2,7 +2,7 @@
 #include "cluster.h"
 #include <limits.h>
 
-#define MAX_ITER 10000
+#define MAX_ITER 100000
 
 void k_means(size_t *data, size_t data_size, size_t k, cluster* clusters) {
     
@@ -32,7 +32,7 @@ void k_means(size_t *data, size_t data_size, size_t k, cluster* clusters) {
                 centroid_changed = 1;
             }
         }
-        if (!centroid_changed) break;
+        if (centroid_changed == 0) break;
     }
 
 }
@@ -40,7 +40,7 @@ size_t calculate_new_centroid(size_t *points, size_t point_count) {
     if(point_count == 0) return 0;
     size_t sum = 0;
     for(size_t i = 0; i < point_count; i++) {
-        sum += point_count;
+        sum += points[i];
     }
     return sum / point_count;
 }

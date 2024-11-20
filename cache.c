@@ -62,15 +62,14 @@ size_t median(size_t arr[], size_t n) {
 
 
 
-// Every data point has some value associated with it
-// Buffer Size, Stride (how far into the buffer we're accessing), time_diff
-// Lets make a VERY big file and read these in as structs
-size_t collect_median_access_time(size_t buffer_size, size_t stride) {
+// Now trying to see if we can get clustering to work.
+// Success looks like gathering very Large clusters
+cluster* collect_median_access_time(size_t buffer_size, size_t stride) {
     size_t iterations = buffer_size / stride;// Total iterations
     size_t* data = malloc(sizeof(size_t) * iterations);
     char* buffer = malloc(buffer_size);
-    size_t result = -1;
-
+    cluster* clusters = malloc(2 * sizeof(cluster));
+    
     /**
      * May fail to allocate due to th volume of memory we're
      * allocating here.
@@ -99,12 +98,10 @@ size_t collect_median_access_time(size_t buffer_size, size_t stride) {
         it_counter++;
     }
 
-    result = median(data, iterations);
-
+    k_means(data, iterations, 2, clusters);
     free(buffer);
     free(data);
-
-    return result;
+    return clusters;
 }
 
 int main(int argc, char** argv) {
@@ -118,7 +115,14 @@ int main(int argc, char** argv) {
     for (size_t buffer_size = 1024; buffer_size <= MAX_BUFFER; buffer_size *= 2) {
         for (size_t stride_size = 1; stride_size <= MIN_STRIDE; stride_size *= 2) {
             // collect_median_access_time(buffer_size, stride_size, outfile);
-            collect_median_access_time(buffer_size, stride_size);
+            cluster* clusters = collect_median_access_time(buffer_size, stride_size);
+            printf("Center access time at mean %lu has %lu data points\n", 
+                clusters[0].centroid, 
+                clusters[0].point_count);
+            printf("Center access time at mean %lu has %lu data points\n", 
+                clusters[1].centroid, 
+                clusters[1].point_count);
+            free(clusters);
         }
     }
     spin = 0;
