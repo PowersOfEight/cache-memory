@@ -16,6 +16,7 @@
 # define MAX_BUFFER 32 * 1024 * 1024
 # define N_CENTERS 2097152
 # define MIN_STRIDE 64
+# define K 2
 // Let's record one center for each of the runs
 
 volatile int spin = 1;
@@ -47,28 +48,44 @@ void* spinner(void* args) {
 }
 
 int compare(const void* a, const void* b) {
-    return (*(size_t*)a - *(size_t*)b);
+    int result = 0;
+    size_t comparison = (*(size_t*)a - *(size_t*)b);
+    if (comparison < 0) {
+        result = -1;
+    } else if (comparison > 0) {
+        result = 1;
+    }
+    return result;
 }
 
 size_t median(size_t arr[], size_t n) {
     qsort(arr, n, sizeof(size_t), compare);
 
     if ((n & 1) == 0) { // even
-        return (arr[n / 2 - 1] + arr[n / 2 ]) / 2;
+        return (arr[(n / 2) - 1] + arr[(n / 2) ]) / 2;
     } else {
         return arr[n/2];
     }
 }
 
-
+/*
+    Sorts the arr and gets rid of anything that is over the limit
+*/
+void remove_limit(size_t arr[], size_t* n, size_t limit) {
+    qsort(arr, (*n), sizeof(size_t), compare);
+    int i = 0;
+    while(i < (*n) && arr[i++] <= limit) ;
+    (*n)= i;
+}
 
 // Now trying to see if we can get clustering to work.
 // Success looks like gathering very Large clusters
 cluster* collect_median_access_time(size_t buffer_size, size_t stride) {
     size_t iterations = buffer_size / stride;// Total iterations
     size_t* data = malloc(sizeof(size_t) * iterations);
+    size_t  n_data = 0;
     char* buffer = malloc(buffer_size);
-    cluster* clusters = malloc(2 * sizeof(cluster));
+    cluster* clusters = malloc(K * sizeof(cluster));
     
     /**
      * May fail to allocate due to th volume of memory we're
@@ -96,40 +113,40 @@ cluster* collect_median_access_time(size_t buffer_size, size_t stride) {
         clock_gettime(CLOCK_MONOTONIC, &end);
         data[i] = (end.tv_sec - start.tv_sec) * BILLION + (end.tv_nsec - start.tv_nsec);
         it_counter++;
+        n_data++;
     }
 
-    k_means(data, iterations, 2, clusters);
+    remove_limit(data, &n_data, L);
+    k_means(data, n_data, K, clusters);
+
     free(buffer);
     free(data);
     return clusters;
 }
 
 int main(int argc, char** argv) {
-    pthread_t spinner_thread;
+    // pthread_t spinner_thread;
 
-    spin = 1;
-    if (pthread_create(&spinner_thread, NULL, spinner, NULL) != 0) {
-        perror("Thread creation failure!");
-        return EXIT_FAILURE;
-    }
+    // spin = 1;
+    // if (pthread_create(&spinner_thread, NULL, spinner, NULL) != 0) {
+    //     perror("Thread creation failure!");
+    //     return EXIT_FAILURE;
+    // }
     for (size_t buffer_size = 1024; buffer_size <= MAX_BUFFER; buffer_size *= 2) {
         for (size_t stride_size = 1; stride_size <= MIN_STRIDE; stride_size *= 2) {
             // collect_median_access_time(buffer_size, stride_size, outfile);
             cluster* clusters = collect_median_access_time(buffer_size, stride_size);
-            printf("Center access time at mean %lu has %lu data points\n", 
-                clusters[0].centroid, 
-                clusters[0].point_count);
-            printf("Center access time at mean %lu has %lu data points\n", 
-                clusters[1].centroid, 
-                clusters[1].point_count);
+            for(int i = 0; i < K; i++) {
+                printf("Access time: %10lu, N: %10lu, it: %10lu, id: %10d, buf: %10lu, stride: %10lu\n", clusters[i].centroid, clusters[i].point_count, it_counter, i, buffer_size, stride_size);
+            }
             free(clusters);
         }
     }
-    spin = 0;
-    if (pthread_join(spinner_thread, NULL) != 0) {
-        perror("Failed to join spinner thread");
-        return EXIT_FAILURE;
-    }
+    // spin = 0;
+    // if (pthread_join(spinner_thread, NULL) != 0) {
+    //     perror("Failed to join spinner thread");
+    //     return EXIT_FAILURE;
+    // }
 
     printf("Run complete\nTotal Iterations: %lu\n", it_counter);
     return 0;

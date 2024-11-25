@@ -2,7 +2,7 @@
 #include "cluster.h"
 #include <limits.h>
 
-#define MAX_ITER 100000
+#define MAX_ITER 1000000
 
 void k_means(size_t *data, size_t data_size, size_t k, cluster* clusters) {
     
