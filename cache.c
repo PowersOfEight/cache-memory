@@ -13,7 +13,7 @@
 # define DEFAULT_FILE_NAME "data/cache-data.csv"
 
 # define BILLION 1000000000L
-# define MAX_BUFFER 32 * 1024 * 1024
+# define MAX_BUFFER 1024 * 1024
 # define N_CENTERS 2097152
 # define MIN_STRIDE 64
 # define K 2
@@ -116,7 +116,7 @@ cluster* collect_median_access_time(size_t buffer_size, size_t stride) {
         n_data++;
     }
 
-    remove_limit(data, &n_data, L);
+    remove_limit(data, &n_data, 115L);
     k_means(data, n_data, K, clusters);
 
     free(buffer);
@@ -135,10 +135,12 @@ int main(int argc, char** argv) {
     for (size_t buffer_size = 1024; buffer_size <= MAX_BUFFER; buffer_size *= 2) {
         for (size_t stride_size = 1; stride_size <= MIN_STRIDE; stride_size *= 2) {
             // collect_median_access_time(buffer_size, stride_size, outfile);
+            printf("\n");
             cluster* clusters = collect_median_access_time(buffer_size, stride_size);
             for(int i = 0; i < K; i++) {
                 printf("Access time: %10lu, N: %10lu, it: %10lu, id: %10d, buf: %10lu, stride: %10lu\n", clusters[i].centroid, clusters[i].point_count, it_counter, i, buffer_size, stride_size);
             }
+            printf("\n");
             free(clusters);
         }
     }
