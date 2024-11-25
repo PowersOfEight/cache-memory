@@ -1,3 +1,4 @@
+#define _POSIX_C_SOURCE 199309L
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
@@ -161,7 +162,7 @@ int main(int argc, char** argv) {
     }
 
 int firstAcc = data[0]; //first instance of data for main mem acc
-int firstCache = data[1]; //first instance of data from cache
+// int firstCache = data[1]; //first instance of data from cache
 cnt = 0;
 int cnt2 = 0;
 int mainmem[iters]; //array created to store all instances of mm access
