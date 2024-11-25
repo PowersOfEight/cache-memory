@@ -33,7 +33,7 @@ void *spinner()
             delay_count = 0;
         }
     }
-    printf("\r\n");
+    printf("\r \n");
     return NULL;
 }
 
