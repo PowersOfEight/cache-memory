@@ -12,6 +12,9 @@
 #define STEP_INCREASE 1024              // 1 KiB increments (2^{10})
 #define ITERATIONS 100000000
 
+// Some globals to get us started
+volatile char dummy_char = (char) 0;
+
 
 /**
  * Assigns thread described by `thread` to the core described by
@@ -53,9 +56,19 @@ void set_realtime_priority(pthread_t thread) {
 }
 
 
+void collect_data(size_t buffer_size, const char* file_path) {
+    FILE* outfile;
+    // Calling it a night
+    outfile = fopen64(file_path, "w");
+
+    fclose(outfile);
+}
+
+
 
 int main(int argc, char **argv)
 {
+    
  
     return 0;
 }

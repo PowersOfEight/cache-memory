@@ -14,7 +14,7 @@ cache_timer.o: cache_timer.c bin
 cache_timer: cache_timer.o bin
 	$(CC) $(FLAGS) -o bin/cache_timer bin/cache_timer.o
 
-run-cache-timer: cache_timer
+run-cache-timer: cache_timer data
 	./bin/cache_timer $(ARGS)
 
 cluster.o: bin cluster.c cluster.h
