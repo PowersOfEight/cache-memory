@@ -15,7 +15,7 @@ cache_timer: cache_timer.o bin
 	$(CC) $(FLAGS) -o bin/cache_timer bin/cache_timer.o
 
 run-cache-timer: cache_timer data
-	./bin/cache_timer $(ARGS)
+	sudo ./bin/cache_timer $(ARGS)
 
 cluster.o: bin cluster.c cluster.h
 	$(CC) -c $(FLAGS) -o bin/cluster.o cluster.c
