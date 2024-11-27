@@ -8,13 +8,16 @@ data:
 bin:
 	mkdir bin
 
-cache_timer.o: cache_timer.c bin
+vector.o: bin vector/vector.h vector/vector.c
+	$(CC) -c $(FLAGS) -o bin/vector.o vector/vector.c
+
+cache_timer.o: cache_timer.c vector/vector.h bin
 	$(CC) -c $(FLAGS) -o bin/cache_timer.o cache_timer.c
 
-cache_timer: cache_timer.o bin
-	$(CC) $(FLAGS) -o bin/cache_timer bin/cache_timer.o
+cache_timer: cache_timer.o vector.o bin
+	$(CC) $(FLAGS) -o bin/cache_timer bin/cache_timer.o bin/vector.o
 
-run-cache-timer: cache_timer data
+run-cache-timer: cache_timer data 
 	sudo ./bin/cache_timer $(ARGS)
 
 cluster.o: bin cluster.c cluster.h

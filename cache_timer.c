@@ -8,8 +8,9 @@
 #include <errno.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include "vector/vector.h"
 
-#define ARRAY_SIZE 1024 * 1024 * 16     // 16 MiB (2^{24}) to make sure we're larger than the cache
+#define ARRAY_SIZE 1024 * 1024 * 32     // 16 MiB (2^{24}) to make sure we're larger than the cache
 #define STEP_INCREASE 1024              // 1 KiB increments (2^{10})
 #define ITERATIONS 100000000
 #define DUMMY_PATH "data/dummy.txt"
@@ -21,7 +22,7 @@
 volatile char dummy_char = (char) 0;
 volatile int spin = 1;
 
-void collect_data(size_t, const char*);
+size_t collect_data(size_t);
 
 typedef struct {
     const char* file_path;
@@ -95,53 +96,37 @@ void set_realtime_priority(pthread_t thread) {
     }
 }
 
-
+// Need to find the highest \Delta t for a run
 void* data_thread(void* arg) {
     data_arg* data = (data_arg*) arg;
     set_realtime_priority(pthread_self());
     assign_thread_to_core(pthread_self(), 0);
-    collect_data(1024*1024, data->file_path);
+    // Under Construction
     return NULL;
 }
 
-void collect_data(size_t buffer_size, const char* file_path) {
-    FILE *outfile, *dummy_out;
+/**
+ * Find the buffer size where \Delta t is maximum
+ * \Delta t is t_avg[i] / t_avg[i - 1].  In other words
+ * it scales with the size of t_avg.  \Delta t should be in
+ * the range of [0, 100]. 
+ */
+size_t find_highest_delta_t_buff() {
+    vector* my_vector = init_vec(1024);
+    for (size_t i = 0; i < ARRAY_SIZE; i++) {
+        append(my_vector, i);
+    }
+    for(size_t i = 0; i < my_vector->count; i++) {
+        printf("my_vec[%lu] = %lu\n", i, get(my_vector, i));
+    }
+    destroy_vec(my_vector);
+}
+
+
+
+size_t collect_data(size_t buffer_size) {
     char *buffer = malloc(buffer_size);
-    struct timespec start, end;
     
-    outfile = fopen64(file_path, "w+");
-    if (!outfile)
-    {
-        exit_with_err_msg("Could not open file at path %s\n", file_path);
-    }
-    dummy_out = fopen64(DUMMY_PATH, "w+");
-    if (!dummy_out)
-    {
-        exit_with_err_msg("Could not open file at path %s\n", dummy_out);
-    }
-
-    fprintf(outfile, "elapsed_write, step, letter, write\n");
-    for (size_t i = 0; i < buffer_size; i++) {
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        buffer[i] = (char) i;
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        unsigned long diff = ((end.tv_sec - start.tv_sec)*BILLION) + (end.tv_nsec - start.tv_nsec);
-        fprintf(outfile, "%lu, %lu, %d, 1\n", diff,i+1, (int)buffer[i]);
-    }
-
-    for (size_t i = 0; i < buffer_size; i++) {
-        clock_gettime(CLOCK_MONOTONIC, &start);
-        dummy_char = buffer[i];
-        clock_gettime(CLOCK_MONOTONIC, &end);
-        unsigned long diff = ((end.tv_sec - start.tv_sec)*BILLION) + (end.tv_nsec - start.tv_nsec);
-        fprintf(outfile, "%lu, %lu, %d, 0\n", diff,i+1, (int)dummy_char);
-        fprintf(dummy_out, "\r%d", dummy_char);
-    }
-
-
-
-    fclose(outfile);
-    fclose(dummy_out);
     free(buffer);
 }
 
@@ -149,14 +134,15 @@ void collect_data(size_t buffer_size, const char* file_path) {
 
 int main(int argc, char **argv)
 {
-    pthread_t data_thread_id, spinner_thread;
-    data_arg datarg = {.file_path = "data/test.csv"};
-    printf("Collecting data...\n");
-    pthread_create(&spinner_thread, NULL, spinner, NULL);
-    pthread_create(&data_thread_id, NULL, data_thread, (void*)&datarg);
-    pthread_join(data_thread_id, NULL);
-    spin = 0;
-    pthread_join(spinner_thread, NULL);
+    // pthread_t data_thread_id, spinner_thread;
+    // data_arg datarg = {.file_path = "data/test.csv"};
+    // printf("Collecting data...\n");
+    // pthread_create(&spinner_thread, NULL, spinner, NULL);
+    // pthread_create(&data_thread_id, NULL, data_thread, (void*)&datarg);
+    // pthread_join(data_thread_id, NULL);
+    // spin = 0;
+    // pthread_join(spinner_thread, NULL);
+    find_highest_delta_t_buff();
 
     return 0;
 }
