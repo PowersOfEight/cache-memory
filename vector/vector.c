@@ -31,3 +31,4 @@ size_t get(vector* vec, size_t index) {
     }
     return vec->arr[index];
 }
+
