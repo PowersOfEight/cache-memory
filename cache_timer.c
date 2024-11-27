@@ -21,7 +21,7 @@
 #define MAX_LONG 18446744073709551615L
 
 // Some globals to get us started
-volatile char dummy_char = (char)0;
+char dummy_char = (char)0;
 volatile int spin = 1;
 
 vector *collect_data(size_t);
@@ -119,17 +119,30 @@ void *data_thread(void *arg)
  * it scales with the size of t_avg.  \Delta t should be in
  * the range of [0, 100].
  */
-size_t find_highest_delta_t_buff()
+size_t find_highest_delta_t_buff(vector* times)
 {
-    vector *times = init_vec(1024);
-    vector *buf_sizes = init_vec(1024);
-    for (size_t i = 1024; i <= ARRAY_SIZE; i *= 2)
-    {
+    size_t result = 0;
+    if (times->count >= 2) {
+        for(size_t i = 1; i < times->count; i++) {
+            size_t curr = get(times, i);
+            size_t last = get(times, i-1);
+            if (curr > last) {
+                size_t delta = curr - last;
+                if (delta > result) {
+                    result = delta;
+                }
+            }
+        }
     }
-    destroy_vec(times);
-    destroy_vec(buf_sizes);
-    return 1;
+    // for (size_t i = 0; i < times->count; i++) {
+    //     if (get(times, i) > result) {
+    //         result = get(times, i);
+    //     }
+    // }
+    return result;
 }
+
+
 
 vector *collect_data(size_t buffer_size)
 {
@@ -179,14 +192,8 @@ int main(int argc, char **argv)
     pthread_join(data_thread_id,(void**) &results);
     spin = 0;
     pthread_join(spinner_thread, NULL);
-    struct timespec wait_time;
-    wait_time.tv_sec = 0;
-    wait_time.tv_nsec =1000;
-    for (size_t i = 0; i < results->count; i++) {
-        printf("%lu\n", get(results, i));
-        nanosleep(&wait_time, NULL);
-        // printf("\r");
-    }
+    printf("Largest delta: %lu\n", find_highest_delta_t_buff(results));
+    destroy_vec(results);
     printf("Done...\n");
     return 0;
 }

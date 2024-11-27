@@ -27,7 +27,7 @@ void destroy_vec(vector* vec) {
 
 size_t get(vector* vec, size_t index) {
     if (index < 0 || index >= vec->capacity) {
-        return -1;
+        return 0;
     }
     return vec->arr[index];
 }
