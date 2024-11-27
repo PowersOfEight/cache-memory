@@ -165,6 +165,9 @@ size_t find_median_difference(vector* times) {
     } else {
         median = get(jumps, jumps->count/2);
     }
+    for (int i = 0; i < 20; i++) {
+        printf("%lu\n", get(jumps, i));
+    }
     destroy_vec(jumps);
     return median;
 }
