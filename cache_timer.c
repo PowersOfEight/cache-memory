@@ -10,7 +10,7 @@
 #include <stdarg.h>
 #include "vector/vector.h"
 
-#define ARRAY_SIZE 1024 * 1024 * 32 // 16 MiB (2^{24}) to make sure we're larger than the cache
+#define ARRAY_SIZE 1024 * 1024 * 64 // 16 MiB (2^{24}) to make sure we're larger than the cache
 #define STEP_INCREASE 1024          // 1 KiB increments (2^{10})
 #define ITERATIONS 100000000
 #define DUMMY_PATH "data/dummy.txt"
@@ -134,12 +134,39 @@ size_t find_highest_delta_t_buff(vector* times)
             }
         }
     }
-    // for (size_t i = 0; i < times->count; i++) {
-    //     if (get(times, i) > result) {
-    //         result = get(times, i);
-    //     }
-    // }
     return result;
+}
+
+int compare(const void *a, const void* b) {
+    const size_t* left = (const size_t*) a;
+    const size_t* right = (const size_t*)b;
+    if ((*left) > (*right)) {
+        return 1;
+    } else if ((*right) > (*left)) {
+        return -1;
+    } else {
+        return 0;
+    }
+}
+
+size_t find_median_difference(vector* times) {
+    vector* jumps = init_vec(times->count);
+    size_t median = 0;
+    for (size_t i = 1; i < times->count; i++) {
+        size_t curr = get(times, i);
+        size_t last = get(times, i-1);
+        if (curr > last) {
+            append(jumps, curr - last);
+        }
+    }
+    qsort(jumps->arr, jumps->count, sizeof(size_t), compare);
+    if ((jumps->count & 1) == 0) {// even
+        median = (get(jumps, (jumps->count/2) - 1) + get(jumps, (jumps->count/2)))/2;
+    } else {
+        median = get(jumps, jumps->count/2);
+    }
+    destroy_vec(jumps);
+    return median;
 }
 
 
@@ -193,6 +220,7 @@ int main(int argc, char **argv)
     spin = 0;
     pthread_join(spinner_thread, NULL);
     printf("Largest delta: %lu\n", find_highest_delta_t_buff(results));
+    printf("Median jump: %lu\n", find_median_difference(results));
     destroy_vec(results);
     printf("Done...\n");
     return 0;
