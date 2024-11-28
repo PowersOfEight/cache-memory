@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <stdarg.h>
 #include "vector/vector.h"
+#include "linked_list/linked_list.h"
 
 #define ARRAY_SIZE 1024 * 1024 * 64 // 16 MiB (2^{24}) to make sure we're larger than the cache
 #define STEP_INCREASE 1024          // 1 KiB increments (2^{10})

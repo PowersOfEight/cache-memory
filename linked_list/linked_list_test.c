@@ -29,7 +29,7 @@ int main(int argc, char** argv) {
     for (int i = 0; i < argc; i++) {
         char* arg = (char*) malloc(strlen(argv[i] + 1));
         strcpy(arg, argv[i]);
-        append(list, arg);
+        list_append(list, arg);
     }
     print_forward(list);
     print_backward(list);

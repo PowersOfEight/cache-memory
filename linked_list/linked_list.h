@@ -60,13 +60,13 @@ int previous(linked_list* list);
  * Appends `obj` to the tail `list`
  * @return The new length of the list
  */
-unsigned long append(linked_list* list, void* obj);
+unsigned long list_append(linked_list* list, void* obj);
 
 /**
  * Returns a pointer to the current object.
  * @return Pointer to the current object
  */
-void* get(linked_list* list);
+void* get_curr(linked_list* list);
 
 /**
  * 
