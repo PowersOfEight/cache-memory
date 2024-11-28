@@ -27,6 +27,21 @@ volatile int spin = 1;
 
 vector *collect_data(size_t);
 
+typedef struct {
+    vector *times;
+    size_t buffer_size;
+    size_t stride;
+} run_record;
+
+/**
+ * To allow linked list to destroy
+ * run_records
+ */
+void destroy_record(void* record) {
+    run_record *ptr = (run_record*) record;
+    destroy_vec(ptr->times);
+}
+
 typedef struct
 {
     const char *file_path;
