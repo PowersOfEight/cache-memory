@@ -33,5 +33,6 @@ int main(int argc, char** argv) {
     }
     print_forward(list);
     print_backward(list);
+    destroy_linked_list(list);
     printf("Done...\n");
 }
