@@ -22,6 +22,7 @@ linked_list* init_linked_list(void (*destroy_obj)(void*)){
     list->tail->prev = list->head;
     list->head->prev = NULL;
     list->tail->next = NULL;
+    list->curr = NULL;
     list->length = 0;
     list->destroy_obj = destroy_obj;
     return list;
@@ -29,6 +30,33 @@ linked_list* init_linked_list(void (*destroy_obj)(void*)){
 
 linked_list* init_simple_linked_list() {
     return init_linked_list(NULL);
+}
+
+
+void reset_front(linked_list* list){
+    list->curr = list->length > 0 ? list->head->next : NULL;
+}
+
+void reset_back(linked_list* list) {
+    list->curr = list->length > 0 ? list->tail->prev : NULL;
+}
+
+int next(linked_list* list) {
+    if (list->curr && list->curr->next != list->tail) {
+        list->curr = list->curr->next;
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+int previous(linked_list* list) {
+    if (list->curr && list->curr->prev != list->head) {
+        list->curr = list->curr->prev;
+        return 1;
+    } else {
+        return 0;
+    }
 }
 
 unsigned long append(linked_list* list, void* obj) {
@@ -46,7 +74,17 @@ unsigned long append(linked_list* list, void* obj) {
 
     list->tail->prev->next = new_node;
     list->tail->prev = new_node;
+
+    if (list->length == 0) {
+        list->curr = new_node;
+    }
+
     return ++list->length;
+}
+
+void* get(linked_list* list) {
+    if(!list || !list->curr) return NULL;
+    return list->curr->object;
 }
 
 void destroy_linked_list(linked_list* list){
@@ -55,7 +93,6 @@ void destroy_linked_list(linked_list* list){
     list_node* curr = list->head->next;
     
     while (curr != list->tail) {
-        // remove and free listnodes
         list_node* tmp = curr;
         curr = tmp->next;
         tmp->next->prev = tmp->prev;
@@ -72,31 +109,31 @@ void destroy_linked_list(linked_list* list){
     free(list);
 }
 
-int main(int argc, char** argv) {
-    linked_list* list = init_simple_linked_list();
+// int main(int argc, char** argv) {
+//     linked_list* list = init_simple_linked_list();
 
-    // Copy each argument into the linked list
-    for (int i = 0; i < argc; i++) { // Skip argv[0] (program name)
-        char* arg_copy = (char*) malloc(strlen(argv[i]) + 1); // Allocate memory for the string
-        if (!arg_copy) {
-            perror("malloc failed");
-            destroy_linked_list(list);
-            return 1; // Exit if malloc fails
-        }
-        strcpy(arg_copy, argv[i]); // Copy the argument into allocated memory
-        append(list, arg_copy);   // Append the copied string to the list
-    }
+//     // Copy each argument into the linked list
+//     for (int i = 0; i < argc; i++) { // Skip argv[0] (program name)
+//         char* arg_copy = (char*) malloc(strlen(argv[i]) + 1); // Allocate memory for the string
+//         if (!arg_copy) {
+//             perror("malloc failed");
+//             destroy_linked_list(list);
+//             return 1; // Exit if malloc fails
+//         }
+//         strcpy(arg_copy, argv[i]); // Copy the argument into allocated memory
+//         append(list, arg_copy);   // Append the copied string to the list
+//     }
 
-    // Print list contents
-    list_node* curr = list->head->next;
-    printf("Length of list: %lu\n", list->length);
-    printf("Arguments in the list:\n");
-    while (curr != list->tail) {
-        printf("%s\n", (char*)curr->object);
-        curr = curr->next;
-    }
+//     // Print list contents
+//     list_node* curr = list->head->next;
+//     printf("Length of list: %lu\n", list->length);
+//     printf("Arguments in the list:\n");
+//     while (curr != list->tail) {
+//         printf("%s\n", (char*)curr->object);
+//         curr = curr->next;
+//     }
 
-    // Destroy the list (frees all memory)
-    destroy_linked_list(list);
-    return 0;
-}
+//     // Destroy the list (frees all memory)
+//     destroy_linked_list(list);
+//     return 0;
+// }
