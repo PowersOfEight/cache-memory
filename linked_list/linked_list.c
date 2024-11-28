@@ -4,19 +4,41 @@
 #include "linked_list.h"
 
 
-linked_list* init_linked_list(){
+linked_list* init_linked_list(void (*destroy_obj)(void*)){
     linked_list* list = (linked_list*) malloc(sizeof(linked_list));
+    if (!list) {
+        perror("Failed to allocate linked list");
+        exit(EXIT_FAILURE);
+    }
     list->head = (list_node*) malloc(sizeof(list_node));
     list->tail = (list_node*) malloc(sizeof(list_node));
+    if (!list->head || !list->tail) {
+        perror("Failed to allocate sentinel nodes");
+        free(list);
+        exit(EXIT_FAILURE);
+    }
+
     list->head->next = list->tail;
     list->tail->prev = list->head;
+    list->head->prev = NULL;
+    list->tail->next = NULL;
     list->length = 0;
+    list->destroy_obj = destroy_obj;
     return list;
+}
+
+linked_list* init_simple_linked_list() {
+    return init_linked_list(NULL);
 }
 
 unsigned long append(linked_list* list, void* obj) {
     if(!list) return 0;
     list_node* new_node = malloc(sizeof(list_node));
+    if (!new_node) {
+        perror("Failed to allocate new node for append operation");
+        exit(EXIT_FAILURE);
+    }
+
     new_node->object = obj;
 
     new_node->prev=list->tail->prev;
@@ -28,14 +50,21 @@ unsigned long append(linked_list* list, void* obj) {
 }
 
 void destroy_linked_list(linked_list* list){
+    if (!list) return;
+
     list_node* curr = list->head->next;
+    
     while (curr != list->tail) {
         // remove and free listnodes
         list_node* tmp = curr;
         curr = tmp->next;
         tmp->next->prev = tmp->prev;
         tmp->prev->next = tmp->next;
-        free(tmp->object);
+        if (list->destroy_obj) {
+            list->destroy_obj(tmp->object);
+        } else {
+            free(tmp->object);
+        }
         free(tmp);
     }
     free(list->tail);
@@ -44,7 +73,7 @@ void destroy_linked_list(linked_list* list){
 }
 
 int main(int argc, char** argv) {
-    linked_list* list = init_linked_list();
+    linked_list* list = init_simple_linked_list();
 
     // Copy each argument into the linked list
     for (int i = 0; i < argc; i++) { // Skip argv[0] (program name)
