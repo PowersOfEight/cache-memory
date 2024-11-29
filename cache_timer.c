@@ -11,7 +11,10 @@
 #include "vector/vector.h"
 #include "linked_list/linked_list.h"
 
-#define ARRAY_SIZE 1024 * 1024 * 64 // 16 MiB (2^{24}) to make sure we're larger than the cache
+#define MAX_BUFFER_SIZE 1024 * 1024 * 64 // 64 MiB (2^{24}) to make sure we're larger than the cache
+#define MIN_BUFFER_SIZE 1024
+#define MIN_STRIDE 16 // We'll start with 16 byte strides
+#define MAX_STRIDE 128
 #define STEP_INCREASE 1024          // 1 KiB increments (2^{10})
 #define ITERATIONS 100000000
 #define DUMMY_PATH "data/dummy.txt"
@@ -25,7 +28,7 @@
 char dummy_char = (char)0;
 volatile int spin = 1;
 
-vector *collect_data(size_t);
+vector *collect_data(size_t, size_t);
 
 typedef struct {
     vector *times;
@@ -40,6 +43,7 @@ typedef struct {
 void destroy_record(void* record) {
     run_record *ptr = (run_record*) record;
     destroy_vec(ptr->times);
+    free(ptr);
 }
 
 typedef struct
@@ -122,11 +126,20 @@ void set_realtime_priority(pthread_t thread)
 // Need to find the highest \Delta t for a run
 void *data_thread(void *arg)
 {
+    linked_list *list = (linked_list*) arg;
     // data_arg *data = (data_arg *)arg;
     set_realtime_priority(pthread_self());
     assign_thread_to_core(pthread_self(), 0);
-    // Under Construction
-    return collect_data(ARRAY_SIZE);
+    for(size_t buffer_size = MIN_BUFFER_SIZE; buffer_size <= MAX_BUFFER_SIZE; buffer_size *= 2) {
+        for(size_t stride = MIN_STRIDE; stride <= MAX_STRIDE; stride *= 2) {
+            run_record* run = (run_record*)malloc(sizeof(run_record));
+            run->buffer_size = buffer_size;
+            run->stride = stride;
+            run->times = collect_data(buffer_size, stride);
+            append_list(list, run);
+        }
+    }
+    return NULL;
 }
 
 /**
@@ -187,8 +200,9 @@ size_t find_median_difference(vector* times) {
 
 
 
-vector *collect_data(size_t buffer_size)
+vector *collect_data(size_t buffer_size, size_t stride)
 {
+    size_t iterations = buffer_size / stride;
     char *buffer = malloc(buffer_size);
     FILE *dummy_file = fopen64(DUMMY_PATH, "w+");
     vector* results = init_vec(1024);
@@ -200,15 +214,16 @@ vector *collect_data(size_t buffer_size)
 
     struct timespec start, end;
     // warm up the cache
-    for (size_t i = 0; i < buffer_size; i++)
+    for (size_t i = 0; i < iterations; i++)
     {
-        buffer[i] = (char)i;
+        buffer[i * stride] = (char)i;
     }
-    for (size_t i = 0; i < buffer_size; i++)
+    for (size_t i = 0; i < iterations; i++)
     {
         clock_gettime(CLOCK_MONOTONIC, &start);
-        dummy_char += (char)buffer[i];
+        dummy_char = (char)buffer[i * stride];
         clock_gettime(CLOCK_MONOTONIC, &end);
+        fprintf(dummy_file, "%d", (int)dummy_char);
         size_t diff =
             ((end.tv_sec - start.tv_sec) * BILLION) + (end.tv_nsec - start.tv_nsec);
         if (diff < min) {
@@ -217,8 +232,8 @@ vector *collect_data(size_t buffer_size)
         if (diff <= (min * MAX_FACTOR)) {// Filters outlandishly high values
             append(results, diff);
         }
+        fprintf(dummy_file,"\r ");
     }
-    fprintf(dummy_file, "dummy_char: %d\n", (int)dummy_char);
     fclose(dummy_file);
     free(buffer);
     return results;
@@ -227,17 +242,23 @@ vector *collect_data(size_t buffer_size)
 int main(int argc, char **argv)
 {
     pthread_t data_thread_id, spinner_thread;
-    data_arg datarg = {.file_path = "data/test.csv"};
-    vector* results;
+    // data_arg datarg = {.file_path = "data/test.csv"};
+    linked_list* results = init_linked_list(destroy_record);
     printf("Collecting data...\n");
     pthread_create(&spinner_thread, NULL, spinner, NULL);
-    pthread_create(&data_thread_id, NULL, data_thread, (void*)&datarg);
-    pthread_join(data_thread_id,(void**) &results);
+    pthread_create(&data_thread_id, NULL, data_thread, (void*)results);
+    pthread_join(data_thread_id,NULL);
     spin = 0;
     pthread_join(spinner_thread, NULL);
-    printf("Largest delta: %lu\n", find_highest_delta_t_buff(results));
-    printf("Median jump: %lu\n", find_median_difference(results));
-    destroy_vec(results);
+    printf("List of length %lu returned\n", results->length);
+    reset_front(results);
+    run_record* record;
+    while((record = get_curr(results)) != NULL) {
+        printf("Buffer Size: %12lu, Stride: %8lu, Highest Delta: %6lu\n",
+            record->buffer_size, record->stride,  find_highest_delta_t_buff(record->times));
+        if(!next(results)) break;
+    }
+    destroy_linked_list(results);
     printf("Done...\n");
     return 0;
 }

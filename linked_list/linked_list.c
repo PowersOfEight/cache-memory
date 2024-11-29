@@ -59,7 +59,7 @@ int previous(linked_list* list) {
     }
 }
 
-unsigned long list_append(linked_list* list, void* obj) {
+unsigned long append_list(linked_list* list, void* obj) {
     if(!list) return 0;
     list_node* new_node = malloc(sizeof(list_node));
     if (!new_node) {
