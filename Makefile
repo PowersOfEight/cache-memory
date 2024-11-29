@@ -19,7 +19,7 @@ cache_timer.o: cache_timer.c vector/vector.h bin
 	$(CC) -c $(FLAGS) -o bin/cache_timer.o cache_timer.c
 
 cache_timer: cache_timer.o vector.o linked_list.o bin
-	$(CC) $(FLAGS) -o bin/cache_timer bin/cache_timer.o bin/vector.o bin/linked_list.o
+	$(CC) $(FLAGS) -o bin/cache_timer bin/cache_timer.o bin/vector.o bin/linked_list.o -lm
 
 run-cache-timer: cache_timer data 
 	sudo ./bin/cache_timer $(ARGS)

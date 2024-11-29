@@ -3,16 +3,18 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
+#include <string.h>
 #include <sched.h>
 #include <time.h>
 #include <errno.h>
 #include <unistd.h>
 #include <stdarg.h>
+#include <math.h>
 #include "vector/vector.h"
 #include "linked_list/linked_list.h"
 
 #define MAX_BUFFER_SIZE 1024 * 1024 * 64 // 64 MiB (2^{24}) to make sure we're larger than the cache
-#define MIN_BUFFER_SIZE 1024
+#define MIN_BUFFER_SIZE 256
 #define MIN_STRIDE 16 // We'll start with 16 byte strides
 #define MAX_STRIDE 128
 #define STEP_INCREASE 1024          // 1 KiB increments (2^{10})
@@ -29,12 +31,79 @@ char dummy_char = (char)0;
 volatile int spin = 1;
 
 vector *collect_data(size_t, size_t);
+long double mean_time(vector*);
+long double median_time(vector*);
+long double variance(vector*, long double mean);
+long double std_dev(vector*, long double mean);
+size_t sum(vector*);
+int compare_times(const void*, const void*);
+
 
 typedef struct {
     vector *times;
     size_t buffer_size;
     size_t stride;
 } run_record;
+
+size_t sum(vector* times) {
+    size_t result = 0;
+    
+    for(size_t i = 0; i < times->count; ++i){
+        result += get(times, i);
+    }
+    return result;
+}
+
+
+
+long double mean_time(vector* times) {
+    return (long double) sum(times) / times->count;
+}
+
+int compare_times(const void* left, const void* right) {
+    size_t *a = (size_t*) left;
+    size_t *b = (size_t*) right;
+
+    if (*a < *b) {
+        return -1;
+    } else if (*a > *b) {
+        return 1;
+    } else {
+        return 0;
+    }
+}
+
+long double median_time(vector* times) {
+    long double result = 0.0f;
+    size_t* sorted_times = malloc(sizeof(size_t) * times->count);
+
+    memcpy(sorted_times, times->arr, times->count * sizeof(size_t));
+    qsort(sorted_times, times->count, sizeof(size_t), compare_times);
+
+    if (times->count & 1) {// odd
+        result = (long double) sorted_times[(times->count / 2) + 1];
+    } else {// even
+        result = (long double) 
+            ((sorted_times[(times->count / 2) + 1] + sorted_times[times->count/2])/2);
+    }
+    free(sorted_times);
+    return result;
+}
+
+long double variance(vector* times, long double mean) {
+    long double result = 0.0;
+
+    for (size_t i = 0; i < times->count; ++i) {
+        long double diff = get(times, i) - mean;
+        result += (diff * diff);
+    }
+    return result;
+}
+
+long double std_dev(vector* times, long double mean) {
+    long double var = variance(times, mean);
+    return sqrt(var / times->count);
+}
 
 /**
  * To allow linked list to destroy
@@ -254,8 +323,15 @@ int main(int argc, char **argv)
     reset_front(results);
     run_record* record;
     while((record = get_curr(results)) != NULL) {
-        printf("Buffer Size: %12lu, Stride: %8lu, Highest Delta: %6lu\n",
-            record->buffer_size, record->stride,  find_highest_delta_t_buff(record->times));
+        long double mean = mean_time(record->times);
+        long double median = median_time(record->times);
+        long double stdev = std_dev(record->times, mean);
+        printf("Buffer Size: %12lu bytes, Stride: %8lu bytes, Mean Access Time: %6.2Lf ns, Median Access Time: %6.2Lf ns, Standard Deviation: %9.2Lf ns\n",
+            record->buffer_size, 
+            record->stride,  
+            mean, 
+            median,
+            stdev);
         if(!next(results)) break;
     }
     destroy_linked_list(results);
