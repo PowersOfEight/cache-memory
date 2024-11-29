@@ -4,12 +4,15 @@
 #include <math.h>
 #include <time.h>
 #include "../linked_list/linked_list.h"
+#include "../utils/utils.h"
 
 #define ARRAY_SIZE 1024 * 1024 // A large enough array to exceed typical cache sizes
 #define REPEATS 1000           // Number of iterations for averaging
 #define THRESHOLD 3
 #define BILLION 1e9L
 
+// if we do this over and over, the mode of all spikes should point us in the 
+// direction of the 
 void measure_cache_block_size()
 {
     int *array = (int *)malloc(ARRAY_SIZE * sizeof(int));
@@ -24,7 +27,7 @@ void measure_cache_block_size()
     double times[11];
     int steps[11];
     int count = 0;
-    for (int step = 1; step <= 1024; step *= 2)
+    for (int step = 16; step <= 1024; step *= 2)
     { // Increase step size
         clock_gettime(CLOCK_MONOTONIC, &start);
 
@@ -39,7 +42,7 @@ void measure_cache_block_size()
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         unsigned long n = REPEATS * ARRAY_SIZE / step;
-        long time_taken = ((end.tv_sec - start.tv_sec) * BILLION) + (end.tv_nsec - start.tv_nsec);
+        unsigned long time_taken = elapsed_time_ns(start, end);
         double mean_time = (double)time_taken / n;
         printf("Step size: %d, Time: %8f nano-seconds\n", step, mean_time);
         // Look for a jump in time to determine block size
