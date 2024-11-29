@@ -14,9 +14,9 @@
 #include "linked_list/linked_list.h"
 
 #define MAX_BUFFER_SIZE 1024 * 1024 * 64 // 64 MiB (2^{24}) to make sure we're larger than the cache
-#define MIN_BUFFER_SIZE 256
+#define MIN_BUFFER_SIZE 1024
 #define MIN_STRIDE 16 // We'll start with 16 byte strides
-#define MAX_STRIDE 128
+#define MAX_STRIDE 512
 #define STEP_INCREASE 1024          // 1 KiB increments (2^{10})
 #define ITERATIONS 100000000
 #define DUMMY_PATH "data/dummy.txt"
@@ -297,7 +297,8 @@ vector *collect_data(size_t buffer_size, size_t stride)
             ((end.tv_sec - start.tv_sec) * BILLION) + (end.tv_nsec - start.tv_nsec);
         if (diff < min) {
             min = diff;
-        } 
+        }
+        append(results, diff);
         if (diff <= (min * MAX_FACTOR)) {// Filters outlandishly high values
             append(results, diff);
         }
