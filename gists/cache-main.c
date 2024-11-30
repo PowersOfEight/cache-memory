@@ -74,11 +74,15 @@ int main(){
         destroy_linked_list(block_sizes);
     }
     int block_size = find_mode_int(int_block_list);
+    destroy_linked_list(int_block_list);
     spin = 0;
     pthread_join(spinner_thread, NULL);
     printf("Estimated block size: %d\n", block_size);
-    delta measurement = measure_cache_size();
-    destroy_linked_list(int_block_list);
+    spin = 1;
+    pthread_create(&spinner_thread, NULL, spinner, NULL);
+    measure_cache_size();
+    spin = 0;
+    pthread_join(spinner_thread, NULL);
     get_access_times();
 
     return 0;

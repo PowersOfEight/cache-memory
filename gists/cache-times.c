@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <time.h>
+#include "cache-times.h"
 
 #define SPINNER_DELAY 10000000L
 #define COLLECTION_DELAY 100000L
@@ -12,10 +13,10 @@
 
 #define BILLION 1000000000L
 #define MAX_BUFFER 1024 * 1024
-int iters = 0;
-volatile int spin = 1;
-volatile char dummy_char = (char)0;
-void *spinner()
+static int iters = 0;
+static volatile int spin = 1;
+static volatile char dummy_char = (char)0;
+static void *spinner()
 {
     const char spinner_chars[] = {'|', '/', '-', '\\'};
     const int num_chars = 4;
@@ -89,10 +90,8 @@ int get_access_times()
     const size_t stride = 64;
     size_t max_buffer = MAX_BUFFER; // 2^25  --> 2^15
 
-    if (argc < 1)
-    {
         filename = DEFAULT_FILE_NAME;
-    }
+   
 
     outfile = fopen(filename, "w");
 

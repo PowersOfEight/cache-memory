@@ -70,7 +70,7 @@ delta measure_cache_size() {
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         // do something with dummy
-        if (dummy < 0) {
+        if (dummy == 0) {
             printf("%d\r", dummy);// literally prints the number then erases it
         }
 
@@ -83,6 +83,6 @@ delta measure_cache_size() {
         free(data);
     }
     delta max_delta = deltas_from_measurments(measurements);
-    printf("The cache size is between %10lu KiB and %10lu KiB\n", max_delta.low_size/1024, max_delta.high_size/1024);
+    printf("Estimated cache size %lu KiB\n", max_delta.high_size/1024);
     return max_delta;
 }

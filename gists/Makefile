@@ -9,7 +9,10 @@ EXEC = cache-main
 
 all: $(EXEC)
 
-cache-main: cache-main.o cache-size.o cache-block.o linked_list.o utils.o
+data:
+	mkdir data
+
+cache-main: cache-main.o cache-size.o cache-block.o linked_list.o utils.o cache-times.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 cache-main.o: cache-main.c linked_list.o cache-size.o 
@@ -27,12 +30,14 @@ utils.o: utils/utils.c utils/utils.h
 cache-size.o: cache-size.c
 	$(CC) $(CFLAGS) -o cache-size.o -c $<
 
+cache-times.o: cache-times.c cache-times.h data
+	$(CC) $(CFLAGS) -c $< -o $@ 
 
 run-%: %
 	./$(*)
 
 clean:
-	rm -rf $(OBJ_DIR) $(EXEC) 
+	rm -rf $(OBJ_DIR) $(EXEC) data
 
 tarball: 
 	tar -czvf $(NAME).tar.gz ./*
