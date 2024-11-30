@@ -4,6 +4,7 @@
 #include "linked_list/linked_list.h"
 #include "cache-block.h"
 #include "cache-size.h"
+#include "cache-times.h"
 #define N 100
 #define SPINNER_DELAY 100000000L
 
@@ -76,11 +77,9 @@ int main(){
     spin = 0;
     pthread_join(spinner_thread, NULL);
     printf("Estimated block size: %d\n", block_size);
-    spin = 1;
-    pthread_create(&spinner_thread, NULL, spinner, NULL);
-    measure_cache_size();
-    spin = 0;
-    pthread_join(spinner_thread, NULL);
+    delta measurement = measure_cache_size();
     destroy_linked_list(int_block_list);
+    get_access_times();
+
     return 0;
 }
