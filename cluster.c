@@ -45,13 +45,21 @@ size_t calculate_new_centroid(size_t *points, size_t point_count) {
     return sum / point_count;
 }
 
+size_t unsigned_distance(size_t left, size_t right) {
+    if (left > right) {
+        return left - right;
+    } else {
+        return right - left;
+    }
+}
 
 size_t closest_cluster(size_t value, cluster* clusters, size_t k) {
     size_t min_distance = SSIZE_MAX;
     size_t closest = 0;
 
     for (size_t i = 0; i < k; i++) {
-        size_t distance = abs((int)(value - clusters[i].centroid));
+        // size_t distance = abs((int)(value - clusters[i].centroid));
+        size_t distance = unsigned_distance(value, clusters[i].centroid);
         if (distance < min_distance) {
             min_distance = distance;
             closest = i;

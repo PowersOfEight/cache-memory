@@ -8,6 +8,22 @@ data:
 bin:
 	mkdir bin
 
+linked_list.o: bin linked_list/linked_list.h linked_list/linked_list.c
+	$(CC) -c $(FLAGS) -o bin/linked_list.o linked_list/linked_list.c
+
+
+vector.o: bin vector/vector.h vector/vector.c
+	$(CC) -c $(FLAGS) -o bin/vector.o vector/vector.c
+
+cache_timer.o: cache_timer.c vector/vector.h bin
+	$(CC) -c $(FLAGS) -o bin/cache_timer.o cache_timer.c
+
+cache_timer: cache_timer.o vector.o linked_list.o bin
+	$(CC) $(FLAGS) -o bin/cache_timer bin/cache_timer.o bin/vector.o bin/linked_list.o -lm
+
+run-cache-timer: cache_timer data 
+	sudo ./bin/cache_timer $(ARGS)
+
 cluster.o: bin cluster.c cluster.h
 	$(CC) -c $(FLAGS) -o bin/cluster.o cluster.c
 
