@@ -3,17 +3,16 @@
 #include <stdlib.h>
 #include <math.h>
 #include <time.h>
-#include "../linked_list/linked_list.h"
-#include "../utils/utils.h"
+#include "linked_list/linked_list.h"
+#include "utils/utils.h"
+#include "cache-block.h"
 
 #define ARRAY_SIZE 1024 * 1024 // A large enough array to exceed typical cache sizes
 #define REPEATS 1000           // Number of iterations for averaging
 #define THRESHOLD 3
 #define BILLION 1e9L
 
-// if we do this over and over, the mode of all spikes should point us in the 
-// direction of the 
-void measure_cache_block_size()
+linked_list* measure_cache_block_size()
 {
     int *array = (int *)malloc(ARRAY_SIZE * sizeof(int));
     if (!array)
@@ -44,7 +43,7 @@ void measure_cache_block_size()
         unsigned long n = REPEATS * ARRAY_SIZE / step;
         unsigned long time_taken = elapsed_time_ns(start, end);
         double mean_time = (double)time_taken / n;
-        printf("Step size: %d, Time: %8f nano-seconds\n", step, mean_time);
+        // printf("Step size: %d, Time: %8f nano-seconds\n", step, mean_time);
         // Look for a jump in time to determine block size
         if (block_size == 0 && mean_time > THRESHOLD)
         {
@@ -68,18 +67,14 @@ void measure_cache_block_size()
         }
     }
     reset_front(spikes);
-    int *spike;
-    while ((spike = get_curr(spikes))!= NULL) {
-        printf("Spike detected at step size %d bytes\n", *spike);
-        if (!next(spikes)) break;
-    }
-    destroy_linked_list(spikes);
+    // int *spike;
+    // while ((spike = get_curr(spikes))!= NULL) {
+    //     // printf("Spike detected at step size %d bytes\n", *spike);
+    //     if (!next(spikes)) break;
+    // }
+    // destroy_linked_list(spikes);
     free(array);
-    printf("Estimated cache block size: %d bytes\n", block_size);
+    // printf("Estimated cache block size: %d bytes\n", block_size);
+    return spikes;
 }
 
-int main()
-{
-    measure_cache_block_size();
-    return 0;
-}
