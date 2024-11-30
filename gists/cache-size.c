@@ -3,8 +3,8 @@
 #include <time.h>
 #include <stdlib.h>
 #include "../utils/utils.h"
-
-volatile char dummy = (char) 0;
+#define REPEATS 100
+volatile int dummy = 0;
 
 void measure_cache_size() {
     /**
@@ -12,32 +12,35 @@ void measure_cache_size() {
      * Since we know the block size of the cache, we know that
      * the block size must divide the total cache size.
      */
-    for (size_t size = 1024; size <= 1024 * 1024 * 128; size *= 2) {
-        char* bytes = (char*)malloc(size); 
+    for (size_t size = 1024; size <= 1024 * 1024 * 64 * sizeof(int); size *= 2) {
+        int* data = (int*)malloc(size * sizeof(int)); 
         struct timespec start, end;
         
+        int stride = 16;
         // Warm up the cache
         for (size_t i = 0; i < size; i++) {
-            bytes[i] = (char) i;
+            data[i] = i;
         }
 
         // Start the clock
         clock_gettime(CLOCK_MONOTONIC, &start);
-        for (size_t i = 0; i < size; i++) {
-            dummy += bytes[i];
+        for (int j = 0; j < REPEATS; j++) {
+            for (size_t i = 0; i < size; i += stride) {
+                dummy += data[i];
+            }
         }
         clock_gettime(CLOCK_MONOTONIC, &end);
 
         // do something with dummy
-        if (dummy == 'a') {
-            printf("%c\r", dummy);// literally prints the character 'a' then erases it
+        if (dummy < 0) {
+            printf("%d\r", dummy);// literally prints the number then erases it
         }
 
         unsigned long elapsed = elapsed_time_ns(start, end);
-        long double mean = (double) elapsed / size;
+        long double mean = (double) elapsed / (size * REPEATS / stride);
 
-        printf("For an array of size %12lu KiB, mean access was %8.2Lf\n", size / 1024, mean);
-        free(bytes);
+        printf("For an array of size %12lu KiB, mean access was %8.2Lf ns\n", size * sizeof(int) / 1024, mean);
+        free(data);
     }
 }
 
