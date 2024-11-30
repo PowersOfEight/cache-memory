@@ -17,7 +17,7 @@ utils.o: ../utils/utils.c ../utils/utils.h
 cache-size.o: cache-size.c
 	$(CC) $(CFLAGS) -o cache-size.o -c $<
 
-cache-size: cache-size.o utils.o
+cache-size: cache-size.o linked_list.o utils.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 cache-block: cache-block.o utils.o linked_list.o
