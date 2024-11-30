@@ -44,3 +44,5 @@ run-%: %
 
 clean:
 	rm -rf $(OBJ_DIR) $(EXEC)
+
+tarball:
