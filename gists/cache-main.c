@@ -76,7 +76,11 @@ int main(){
     spin = 0;
     pthread_join(spinner_thread, NULL);
     printf("Estimated block size: %d\n", block_size);
-    delta measurement = measure_cache_size();
+    spin = 1;
+    pthread_create(&spinner_thread, NULL, spinner, NULL);
+    measure_cache_size();
+    spin = 0;
+    pthread_join(spinner_thread, NULL);
     destroy_linked_list(int_block_list);
     return 0;
 }

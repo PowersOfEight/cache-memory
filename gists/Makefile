@@ -1,4 +1,5 @@
 CC = gcc
+NAME = johnson
 CFLAGS = -Wall -Wextra -g
 LDFLAGS = -lm
 OBJ_DIR = bin
@@ -26,23 +27,12 @@ utils.o: utils/utils.c utils/utils.h
 cache-size.o: cache-size.c
 	$(CC) $(CFLAGS) -o cache-size.o -c $<
 
-# cache-size: cache-size.o linked_list.o utils.o
-# 	$(CC) $(CFLAGS) -o $@ $^
-
-# cache-block: cache-block.o utils.o linked_list.o
-# 	$(CC) -o $@ $^
 
 run-%: %
 	./$(*)
 
-# $(EXEC): $(OBJ)
-# 	$(CC) -o $@ $^ $(LDFLAGS)
-
-# $(OBJ_DIR)/%.o: %.c
-# 	mkdir -p $(OBJ_DIR)
-# 	$(CC) $(CFLAGS) -c $< -o $@
-
 clean:
-	rm -rf $(OBJ_DIR) $(EXEC)
+	rm -rf $(OBJ_DIR) $(EXEC) 
 
-tarball:
+tarball: 
+	tar -czvf $(NAME).tar.gz ./*
